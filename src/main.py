@@ -13,13 +13,13 @@ from src.db import load_sent_links, save_sent_link, initialize_db
 # Bot token and channel ID will be read from GitHub Secrets or environment variables.
 # For local testing, you can set them here directly or use a .env file.
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID") # e.g., "@TGAINEWSAGG"
+TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 
 # Initialize the Telegram Bot object with your token.
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Channel ID for display in the Telegram post footer.
-TELEGRAM_CHANNEL_ID_FOR_FOOTER = "@TGAINEWSAGG" # Hardcode this as it's constant for the channel
+TELEGRAM_CHANNEL_ID_FOR_FOOTER = "@AI_Nexus_RSS" # Hardcode this as it's constant for the channel
 
 # --- Function Definitions ---
 
