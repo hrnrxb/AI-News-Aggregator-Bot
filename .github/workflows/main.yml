@@ -1,0 +1,32 @@
+name: AI News Aggregator Bot
+
+on:
+  schedule:
+    # Runs every 3 hours (at minute 0 past every 3rd hour)
+    # For example: 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00 UTC
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+
+jobs:
+  run_bot:
+    runs-on: ubuntu-latest # Uses a fresh Ubuntu virtual machine for each run
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4 # Action to check out your repository code
+
+    - name: Set up Python
+      uses: actions/setup-python@v5 # Action to set up Python environment
+      with:
+        python-version: '3.11' # Specify a recent Python version
+
+    - name: Install dependencies
+      run: | # Executes commands in the shell
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Bot Script
+      env: # Environment variables, securely loaded from GitHub Secrets
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+      run: python src/main.py # Execute your main bot script
