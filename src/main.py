@@ -19,7 +19,7 @@ TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Channel ID for display in the Telegram post footer.
-TELEGRAM_CHANNEL_ID_FOR_FOOTER = "@AI_Nexus_RSS" # Hardcode this as it's constant for the channel
+TELEGRAM_CHANNEL_ID_FOR_FOOTER = TELEGRAM_CHANNEL_ID # Hardcode this as it's constant for the channel
 
 # --- Function Definitions ---
 
