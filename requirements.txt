@@ -1,0 +1,5 @@
+python-telegram-bot==20.8
+feedparser==6.0.10
+beautifulsoup4==4.12.3
+requests==2.32.3
+# Note: sqlite3 is built into Python, so no external package is needed for it.
