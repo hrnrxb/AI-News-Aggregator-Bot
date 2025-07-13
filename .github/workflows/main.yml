@@ -2,32 +2,46 @@ name: AI News Aggregator Bot
 
 on:
   schedule:
-    # Runs every 5 hours (at minute 0 past every 5th hour)
-    - cron: '0 */5 * * *'
+    # Runs every 5 hours
+    - cron: '0 */5 * * *' # Changed to every 5 hours as per your last update
   workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
   run_bot:
-    runs-on: ubuntu-latest # Uses a fresh Ubuntu virtual machine for each run
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Action to check out your repository code
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v5 # Action to set up Python environment
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11' # Specify a recent Python version
+        python-version: '3.11'
 
     - name: Install dependencies
-      run: | # Executes commands in the shell
+      run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
+        
+    - name: Download sent_links.db (if exists from previous run)
+      uses: actions/download-artifact@v4
+      with:
+        name: sent-links-db
+        path: . # Download to the root of the repository
+        
     - name: Run Bot Script
-      env: # Environment variables, securely loaded from GitHub Secrets
+      env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-      run: | # Use multiline run command for setting environment variable
-        export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH # Add src to Python path
-        python src/main.py # Execute your main bot script
+      run: |
+        export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
+        python src/main.py
+        
+    - name: Upload sent_links.db
+      uses: actions/upload-artifact@v4
+      with:
+        name: sent-links-db # Name of the artifact
+        path: sent_links.db # Path to the database file
+        if-no-files-found: ignore # Don't fail if the file wasn't created (e.g., first run)
+        retention-days: 100000 # Keep the artifact for 7 days (optional, can be adjusted)
