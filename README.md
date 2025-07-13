@@ -9,7 +9,7 @@ A Python-powered Telegram bot designed for real-time aggregation and delivery of
     * **Academic & Knowledge Platforms:** arXiv (for NLP papers), Papers With Code, The Gradient, Jay Alammar's blog, machinelearningmastery, Towards Data Science, MIT News (AI & General Tech).
     * **Community & Trends:** Reddit (Machine Learning subreddits), Hacker News (general CS & tech discussions).
     * **GitHub Trending:** Identifies top trending repositories across relevant languages and topics (Python, Jupyter Notebook, Google Colab, AI, ML, DL, NLP, CV, Data Science, Awesome Lists).
-* **Automated & Timely Updates:** Configured to run automatically every ~3 hours (or chosen interval) via GitHub Actions, ensuring consistent and fresh news delivery.
+* **Automated & Timely Updates:** Configured to run automatically every ~5 hours (or chosen interval) via GitHub Actions, ensuring consistent and fresh news delivery.
 * **Intelligent Duplicate Prevention:** Utilizes an SQLite database (`sent_links.db`) to persistently track and prevent the re-sending of previously posted news links across multiple runs.
 * **Rich Telegram Formatting:** Delivers news with dynamic, source-specific emojis, bold titles, concise summaries, and clear "Read More" hyperlinks for an engaging user experience.
 * **Scalable & Modular Architecture:** Designed with clear separation of concerns (`main.py`, `utils.py`, `db.py`) for easy maintenance, extension, and testing.
@@ -77,7 +77,7 @@ This bot is designed for automated deployment using GitHub Actions, ensuring con
 
 3.  **Monitor Workflows:**
     * Go to the `Actions` tab in your GitHub repository.
-    * You'll see the "AI News Aggregator Bot" workflow. It's scheduled to run automatically (e.g., every 3 hours).
+    * You'll see the "AI News Aggregator Bot" workflow. It's scheduled to run automatically (e.g., every 5 hours).
     * You can also manually trigger a run by clicking "Run workflow" from the workflow's page.
     * The `sent_links.db` file will be created and persisted across runs using GitHub Actions' artifact caching.
 
