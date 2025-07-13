@@ -2,9 +2,8 @@ name: AI News Aggregator Bot
 
 on:
   schedule:
-    # Runs every 3 hours (at minute 0 past every 3rd hour)
-    # For example: 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00 UTC
-    - cron: '0 */3 * * *'
+    # Runs every 5 hours (at minute 0 past every 5th hour)
+    - cron: '0 */5 * * *'
   workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
