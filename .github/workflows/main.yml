@@ -29,4 +29,6 @@ jobs:
       env: # Environment variables, securely loaded from GitHub Secrets
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-      run: python src/main.py # Execute your main bot script
+      run: | # Use multiline run command for setting environment variable
+        export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH # Add src to Python path
+        python src/main.py # Execute your main bot script
