@@ -4,6 +4,7 @@ import time
 from telegram import Bot
 from telegram.error import RetryAfter, TimedOut
 from telegram.constants import ParseMode
+import html # Added this import for html.escape
 
 # Import functions from other modules
 from src.utils import get_rss_feed_items, get_hacker_news_items, get_github_trending_repos, get_source_emoji
@@ -19,7 +20,7 @@ TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Channel ID for display in the Telegram post footer.
-TELEGRAM_CHANNEL_ID_FOR_FOOTER = TELEGRAM_CHANNEL_ID # Hardcode this as it's constant for the channel
+TELEGRAM_CHANNEL_ID_FOR_FOOTER = TELEGRAM_CHANNEL_ID # No longer "Hardcoded" as a literal string
 
 # --- Function Definitions ---
 
@@ -27,6 +28,7 @@ def format_telegram_post(title, link, summary, source_name_for_emoji_lookup):
     """
     Formats the news item into an HTML string suitable for Telegram.
     Includes a source-specific emoji, title, summary, read more link, and channel ID.
+    Correctly escapes HTML special characters in title and summary.
 
     Args:
         title (str): The title of the news item.
@@ -42,16 +44,20 @@ def format_telegram_post(title, link, summary, source_name_for_emoji_lookup):
     emoji_link = "🔗"
     emoji_channel = "📣"
 
-    if not summary or summary.strip().lower() in [
+    # Escape HTML special characters in title and summary
+    escaped_title = html.escape(title)
+    escaped_summary = html.escape(summary) if summary else ""
+
+    if not escaped_summary or escaped_summary.strip().lower() in [
         "no description available.",
         "click to read more or join the discussion."
     ]:
         summary_text = ""
     else:
-        summary_text = f"\n\n{summary}"
+        summary_text = f"\n\n{escaped_summary}"
 
     post_content = (
-        f"{source_emoji} <b>{title}</b>"
+        f"{source_emoji} <b>{escaped_title}</b>"
         f"{summary_text}"
         f"\n\n{emoji_link} <a href='{link}'>Read More</a>"
         f"\n\n{emoji_channel} Channel: {TELEGRAM_CHANNEL_ID_FOR_FOOTER}"
@@ -59,10 +65,10 @@ def format_telegram_post(title, link, summary, source_name_for_emoji_lookup):
     return post_content
 
 
-def collect_all_news(sent_links):
+def collect_all_news(sent_links): # sent_links is passed here to avoid fetching duplicates
     """
     Collects and aggregates news items from various sources (RSS, GitHub Trending, Hacker News).
-    Ensures uniqueness of news items based on their links.
+    Ensures uniqueness of news items based on their links by filtering against `sent_links`.
 
     Args:
         sent_links (set): A set of previously sent links to avoid duplicates.
@@ -107,6 +113,8 @@ def collect_all_news(sent_links):
     # 3. Collect from Hacker News API
     all_news_items.extend(get_hacker_news_items(sent_links=sent_links, limit=10))
 
+    # Remove duplicates from collected items that might come from different sources
+    # (though sent_links filtering already handled most of this)
     unique_news_items = {}
     for title, link, summary, source_name_for_emoji_lookup in all_news_items:
         unique_news_items[link] = (title, link, summary, source_name_for_emoji_lookup)
@@ -123,7 +131,7 @@ async def send_news_to_telegram(news_items):
     """
     Sends collected news items to the Telegram channel.
     Manages Telegram's Flood Control by waiting when necessary.
-    Saves sent links to prevent duplicates.
+    Saves newly sent links to the database.
 
     Args:
         news_items (list): A list of tuples, each containing
@@ -135,30 +143,36 @@ async def send_news_to_telegram(news_items):
         return
 
     sent_count = 0
+    
+    # Load sent_links ONLY ONCE at the beginning of the sending phase
+    # This prevents redundant DB reads inside the loop
+    current_sent_links_in_db = load_sent_links()
 
     for title, link, summary, source_name_for_emoji_lookup in news_items:
-        # Check if the link has already been sent (using load_sent_links for real-time check against DB)
-        # This is a final safeguard, as get_... functions already filter based on the initial sent_links.
-        if link in load_sent_links():
+        # Final check if the link has been sent (against the set loaded once)
+        # This is more efficient than calling load_sent_links() inside the loop.
+        if link in current_sent_links_in_db:
             print(f"SKIPPED (already sent in this or previous run): {title}")
             continue
             
-        formatted_msg = format_telegram_post(title, link, summary, source_name_for_emoji_lookup) 
+        formatted_msg = format_telegram_post(title, link, summary, source_name_for_emoji_lookup)
         
         try:
             await bot.send_message(chat_id=TELEGRAM_CHANNEL_ID, text=formatted_msg, parse_mode=ParseMode.HTML)
-            save_sent_link(link) # Save the link to DB after successful sending.
+            save_sent_link(link) # Save the new link to DB after successful sending.
+            current_sent_links_in_db.add(link) # Add to the in-memory set to prevent sending again IN THE SAME RUN
             print(f"SUCCESS: '{title}' sent to Telegram.")
             sent_count += 1
             await asyncio.sleep(3) # Wait to prevent hitting Telegram's rate limits.
         except RetryAfter as e:
-            wait_time = e.retry_after + 1 
+            wait_time = e.retry_after + 1
             print(f"Telegram Flood Control: Waiting for {wait_time} seconds before retrying...")
             await asyncio.sleep(wait_time)
             
             try:
                 await bot.send_message(chat_id=TELEGRAM_CHANNEL_ID, text=formatted_msg, parse_mode=ParseMode.HTML)
                 save_sent_link(link)
+                current_sent_links_in_db.add(link) # Add to the in-memory set
                 print(f"SUCCESS (retry): '{title}' sent to Telegram after waiting.")
                 sent_count += 1
                 await asyncio.sleep(3)
@@ -191,12 +205,12 @@ async def main_bot_run():
     initialize_db()
     
     # Load previously sent links from the database
-    # This 'sent_links' will be passed to collection functions to avoid duplicate fetches
-    initial_sent_links = load_sent_links() 
+    # This 'initial_sent_links' will be passed to collection functions to avoid fetching duplicates
+    initial_sent_links = load_sent_links()
     print(f"Number of previously sent links loaded from DB: {len(initial_sent_links)}")
 
     # Pass the initial_sent_links to the collection function
-    collected_news = collect_all_news(initial_sent_links) 
+    collected_news = collect_all_news(initial_sent_links)
     await send_news_to_telegram(collected_news)
 
     end_time = time.time()
