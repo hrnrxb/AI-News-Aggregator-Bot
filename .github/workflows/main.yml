@@ -25,6 +25,7 @@ jobs:
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
+          ls -R ${{ github.workspace }}
           export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
           python src/main.py
           # At the end of this job, actions/cache automatically SAVES the cache if it changed.
