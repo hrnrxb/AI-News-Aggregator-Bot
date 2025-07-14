@@ -35,6 +35,7 @@ jobs:
         key: ${{ runner.os }}-sent-links-db-v1 # Unique key for the cache, includes OS and a version
         restore-keys: | # Fallback keys if the exact key is not found
           ${{ runner.os }}-sent-links-db-v1
+        save-always: true
       continue-on-error: true # Allow workflow to proceed even if cache is not found (e.g., on first run)
         
     - name: Run Bot Script
