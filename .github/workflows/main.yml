@@ -26,7 +26,7 @@ jobs:
     - name: Download sent_links.db (if exists from previous run)
       uses: actions/download-artifact@v4
       with:
-        name: sent-links-db
+        name: sent-links.db
         path: . # Download to the root of the repository
         # This step will fail on first run if artifact doesn't exist,
         # but that's expected. It won't stop subsequent steps due to `continue-on-error`.
@@ -46,7 +46,7 @@ jobs:
     - name: Upload sent_links.db
       uses: actions/upload-artifact@v4
       with:
-        name: sent-links-db
+        name: sent-links.db
         path: sent_links.db # Path to the database file (at repo root)
         # if-no-files-found: ignore # <--- REMOVE THIS LINE
         retention-days: 100000
