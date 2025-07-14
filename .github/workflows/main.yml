@@ -12,6 +12,7 @@ jobs:
     permissions: # <--- IMPORTANT: Explicitly set permissions for GITHUB_TOKEN
       contents: write # Needed for actions/cache to save and actions/upload-artifact to upload
       actions: read   # Good practice, might be needed by some internal actions (e.g., for gh CLI if used)
+    concurrency: my-bot-single-run
 
     steps:
     - name: Checkout code
