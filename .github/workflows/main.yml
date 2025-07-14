@@ -32,7 +32,8 @@ jobs:
         # but that's expected. It won't stop subsequent steps due to `continue-on-error`.
         # Alternatively, you can use `continue-on-error: true` here but it's not best practice.
         # It's okay for it to fail as long as `upload` works.
-
+    continue-on-error: true # <--- ADD THIS LINE: Allows the workflow to proceed even if download fails (e.g., on first run)
+    
     - name: Run Bot Script
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
