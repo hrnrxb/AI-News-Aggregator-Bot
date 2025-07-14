@@ -31,7 +31,6 @@ jobs:
 
       - name: Upload sent_links.db as long-term backup # This step runs ONLY if its 'if' condition is true
         uses: actions/upload-artifact@v4
-        # <--- اینجا نکته کلیدی است:
         if: github.event_name == 'schedule' && github.event.schedule == '0 0 * * *'
         with:
           name: sent_links.db-backup
