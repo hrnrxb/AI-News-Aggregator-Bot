@@ -1,40 +1,57 @@
+name: AI News Aggregator Bot
+
 on:
   schedule:
-    - cron: '0 */5 * * *' # Cron A: Every 5 hours
-    - cron: '0 0 * * *'   # Cron B: Daily at midnight UTC
-  workflow_dispatch:
+    - cron: '0 */5 * * *' # Runs every 5 hours (e.g., 00:00, 05:00, 10:00, 15:00, 20:00 UTC)
+    - cron: '0 0 * * *'   # Runs daily at midnight UTC, specifically for the long-term backup
+  workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
   run_bot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Uses the latest Ubuntu virtual machine
+
     steps:
-      # ... (Checkout, Python Setup, Install Dependencies - These always run) ...
+    - name: Checkout code
+      uses: actions/checkout@v4 # Action to check out your repository code
+      with: # <--- ADDED: Explicitly define repository and ref for checkout
+        repository: ${{ github.repository }} # Ensures the correct repository is checked out
+        ref: ${{ github.ref }} # Ensures the correct branch/tag is checked out
+        fetch-depth: 0 # Fetches all history for all branches and tags.
 
-      - name: Cache sent_links.db # This step ALWAYS runs
-        uses: actions/cache@v4
-        with:
-          path: sent_links.db
-          key: ${{ runner.os }}-sent-links-db-v1
-          restore-keys: |
-            ${{ runner.os }}-sent-links-db-v1
-        continue-on-error: true # Always try to restore cache, even if it fails
+    - name: Set up Python
+      uses: actions/setup-python@v5 # Action to set up Python environment
+      with:
+        python-version: '3.11' # Specify a recent and stable Python version
 
-      - name: Run Bot Script # This step ALWAYS runs
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          GITHUB_WORKSPACE: ${{ github.workspace }}
-        run: |
-          ls -R ${{ github.workspace }}
-          export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
-          python src/main.py
-          # At the end of this job, actions/cache automatically SAVES the cache if it changed.
-
-      - name: Upload sent_links.db as long-term backup # This step runs ONLY if its 'if' condition is true
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'schedule' && github.event.schedule == '0 0 * * *'
-        with:
-          name: sent_links.db-backup
-          path: sent_links.db
-          overwrite: true
-          retention-days: 10000
+    - name: Install dependencies
+      run: | # Executes commands in the shell
+        python -m pip install --upgrade pip # Upgrade pip to ensure latest version
+        pip install -r requirements.txt # Install project dependencies from requirements.txt
+        
+    - name: Cache sent_links.db # Restores sent_links.db from cache or saves it at the end
+      uses: actions/cache@v4 # Uses actions/cache for persistence and speed
+      with:
+        path: sent_links.db # Path to your database file in the repository root
+        key: ${{ runner.os }}-sent-links-db-v1 # Unique key for the cache, includes OS and a version
+        restore-keys: | # Fallback keys if the exact key is not found
+          ${{ runner.os }}-sent-links-db-v1
+      continue-on-error: true # Allow workflow to proceed even if cache is not found (e.g., on first run)
+        
+    - name: Run Bot Script
+      env: # Environment variables, securely loaded from GitHub Secrets
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        GITHUB_WORKSPACE: ${{ github.workspace }} # Pass GITHUB_WORKSPACE to your script for absolute paths
+      run: |
+        ls -R ${{ github.workspace }} # <--- DEBUGGING LINE: Lists files/directories in the workspace
+        export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH # Add src directory to Python path
+        python src/main.py # Execute your main bot script
+        
+    - name: Upload sent_links.db as long-term backup # Uploads a backup artifact periodically
+      uses: actions/upload-artifact@v4 # Uses actions/upload-artifact
+      if: github.event_name == 'schedule' && github.event.schedule == '0 0 * * *' # Condition: only runs daily at midnight UTC
+      with:
+        name: sent_links.db-backup # A distinct name for the backup artifact
+        path: sent_links.db # Path to the database file (relative to GITHUB_WORKSPACE root)
+        overwrite: true # Ensures the backup artifact is always the latest version
+        retention-days: 10000 # Keep the backup artifact for 10000 days
