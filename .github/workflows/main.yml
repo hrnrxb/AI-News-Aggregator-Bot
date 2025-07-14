@@ -2,8 +2,8 @@ name: AI News Aggregator Bot
 
 on:
   schedule:
-    - cron: '0 */5 * * *'
-  workflow_dispatch:
+    - cron: '0 */5 * * *' # Runs every 5 hours
+  workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
   run_bot:
@@ -23,30 +23,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Download sent_links.db (if exists from previous run)
-      uses: actions/download-artifact@v4
+    - name: Cache sent_links.db # <--- NEW STEP: Using actions/cache for persistence
+      uses: actions/cache@v4 # Using actions/cache@v4 (latest stable major version)
       with:
-        name: sent_links.db
-        path: . # Download to the root of the repository
-        # This step will fail on first run if artifact doesn't exist,
-        # but that's expected. It won't stop subsequent steps due to `continue-on-error`.
-        # Alternatively, you can use `continue-on-error: true` here but it's not best practice.
-        # It's okay for it to fail as long as `upload` works.
-      continue-on-error: true 
-        
+        path: sent_links.db # Path to your database file in the repo root
+        key: ${{ runner.os }}-sent-links-db-v1 # Unique key for this cache, includes OS and a version
+        restore-keys: | # Defines fallback keys for restoring stale cache
+          ${{ runner.os }}-sent-links-db-v1
+          
     - name: Run Bot Script
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-        GITHUB_WORKSPACE: ${{ github.workspace }}
+        GITHUB_WORKSPACE: ${{ github.workspace }} # Pass GITHUB_WORKSPACE to your script
       run: |
         export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
         python src/main.py
         
-    - name: Upload sent_links.db
-      uses: actions/upload-artifact@v4
-      with:
-        name: sent_links.db
-        path: sent_links.db # Path to the database file (at repo root)
-        # if-no-files-found: ignore # <--- REMOVE THIS LINE
-        retention-days: 100000
+    # IMPORTANT: No actions/upload-artifact step is needed here.
+    # actions/cache automatically saves the cache at the end of the job
+    # if the content of 'path' has changed.
