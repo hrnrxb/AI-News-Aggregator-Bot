@@ -1,45 +1,40 @@
-name: AI News Aggregator Bot
-
 on:
   schedule:
-    - cron: '0 */5 * * *' # Runs every 5 hours
-  workflow_dispatch: # Allows manual triggering from GitHub UI
+    - cron: '0 */5 * * *' # Cron A: Every 5 hours
+    - cron: '0 0 * * *'   # Cron B: Daily at midnight UTC
+  workflow_dispatch:
 
 jobs:
   run_bot:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # ... (Checkout, Python Setup, Install Dependencies - These always run) ...
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Cache sent_links.db # This step ALWAYS runs
+        uses: actions/cache@v4
+        with:
+          path: sent_links.db
+          key: ${{ runner.os }}-sent-links-db-v1
+          restore-keys: |
+            ${{ runner.os }}-sent-links-db-v1
+        continue-on-error: true # Always try to restore cache, even if it fails
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        
-    - name: Cache sent_links.db # <--- NEW STEP: Using actions/cache for persistence
-      uses: actions/cache@v4 # Using actions/cache@v4 (latest stable major version)
-      with:
-        path: sent_links.db # Path to your database file in the repo root
-        key: ${{ runner.os }}-sent-links-db-v1 # Unique key for this cache, includes OS and a version
-        restore-keys: | # Defines fallback keys for restoring stale cache
-          ${{ runner.os }}-sent-links-db-v1
-          
-    - name: Run Bot Script
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-        GITHUB_WORKSPACE: ${{ github.workspace }} # Pass GITHUB_WORKSPACE to your script
-      run: |
-        export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
-        python src/main.py
-        
-    # IMPORTANT: No actions/upload-artifact step is needed here.
-    # actions/cache automatically saves the cache at the end of the job
-    # if the content of 'path' has changed.
+      - name: Run Bot Script # This step ALWAYS runs
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: |
+          export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
+          python src/main.py
+          # At the end of this job, actions/cache automatically SAVES the cache if it changed.
+
+      - name: Upload sent_links.db as long-term backup # This step runs ONLY if its 'if' condition is true
+        uses: actions/upload-artifact@v4
+        # <--- اینجا نکته کلیدی است:
+        if: github.event_name == 'schedule' && github.event.schedule == '0 0 * * *'
+        with:
+          name: sent_links.db-backup
+          path: sent_links.db
+          overwrite: true
+          retention-days: 10000
