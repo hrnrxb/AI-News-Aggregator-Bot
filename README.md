@@ -1,4 +1,4 @@
-# 🤖💡 AI News Aggregator Bot: Your Smart Companion in the World of AI 💡🤖
+# 🤖💡📣🆙🆓 AI News Aggregator Bot: Your Smart Companion in the World of AI
 
 Tired of struggling to keep up with the latest advancements in the fast-paced world of Artificial Intelligence?
 This Python-powered Telegram bot is your ultimate solution!
