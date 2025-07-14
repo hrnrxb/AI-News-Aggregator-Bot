@@ -2,9 +2,8 @@ name: AI News Aggregator Bot
 
 on:
   schedule:
-    # Runs every 5 hours
-    - cron: '0 */5 * * *' # Changed to every 5 hours as per your last update
-  workflow_dispatch: # Allows manual triggering from GitHub UI
+    - cron: '0 */5 * * *'
+  workflow_dispatch:
 
 jobs:
   run_bot:
@@ -29,11 +28,18 @@ jobs:
       with:
         name: sent-links-db
         path: . # Download to the root of the repository
-        
+        # This step will fail on first run if artifact doesn't exist,
+        # but that's expected. It won't stop subsequent steps due to `continue-on-error`.
+        # Alternatively, you can use `continue-on-error: true` here but it's not best practice.
+        # It's okay for it to fail as long as `upload` works.
+
     - name: Run Bot Script
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        # Pass GITHUB_WORKSPACE to your script as an environment variable
+        # so db.py can construct the absolute path correctly.
+        GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
         export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH
         python src/main.py
@@ -41,7 +47,7 @@ jobs:
     - name: Upload sent_links.db
       uses: actions/upload-artifact@v4
       with:
-        name: sent-links-db # Name of the artifact
-        path: sent_links.db # Path to the database file
-        if-no-files-found: ignore # Don't fail if the file wasn't created (e.g., first run)
-        retention-days: 100000 # Keep the artifact for 7 days (optional, can be adjusted)
+        name: sent-links-db
+        path: sent_links.db # Path to the database file (at repo root)
+        # if-no-files-found: ignore # <--- REMOVE THIS LINE
+        retention-days: 100000
