@@ -9,13 +9,16 @@ on:
 jobs:
   run_bot:
     runs-on: ubuntu-latest # Uses the latest Ubuntu virtual machine
+    permissions: # <--- IMPORTANT: Explicitly set permissions for GITHUB_TOKEN
+      contents: write # Needed for actions/cache to save and actions/upload-artifact to upload
+      actions: read   # Good practice, might be needed by some internal actions (e.g., for gh CLI if used)
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4 # Action to check out your repository code
-      with: # <--- ADDED: Explicitly define repository and ref for checkout
-        repository: ${{ github.repository }} # Ensures the correct repository is checked out
-        ref: ${{ github.ref }} # Ensures the correct branch/tag is checked out
+      with:
+        repository: ${{ github.repository }} # Explicitly tells to checkout current repository
+        ref: ${{ github.ref }} # Explicitly tells to checkout current branch
         fetch-depth: 0 # Fetches all history for all branches and tags.
 
     - name: Set up Python
@@ -28,26 +31,34 @@ jobs:
         python -m pip install --upgrade pip # Upgrade pip to ensure latest version
         pip install -r requirements.txt # Install project dependencies from requirements.txt
         
-    - name: Cache sent_links.db # Restores sent_links.db from cache or saves it at the end
-      uses: actions/cache@v4 # Uses actions/cache for persistence and speed
+    - name: Restore sent_links.db from cache # <--- NEW: Separate step for restoring cache
+      id: restore-cache-db # Assign an ID to this step to reference its outputs
+      uses: actions/cache/restore@v4 # Uses actions/cache/restore
       with:
-        path: sent_links.db # Path to your database file in the repository root
-        key: ${{ runner.os }}-sent-links-db-v1 # Unique key for the cache, includes OS and a version
+        path: sent_links.db # Path to your database file in the repo root
+        key: ${{ runner.os }}-sent-links-db-v1 # Primary key for cache
         restore-keys: | # Fallback keys if the exact key is not found
           ${{ runner.os }}-sent-links-db-v1
-        save-always: true
       continue-on-error: true # Allow workflow to proceed even if cache is not found (e.g., on first run)
         
-    - name: Run Bot Script
+    - name: Run Bot Script # This step always runs and modifies sent_links.db
       env: # Environment variables, securely loaded from GitHub Secrets
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         GITHUB_WORKSPACE: ${{ github.workspace }} # Pass GITHUB_WORKSPACE to your script for absolute paths
       run: |
-        ls -R ${{ github.workspace }} # <--- DEBUGGING LINE: Lists files/directories in the workspace
+        ls -R ${{ github.workspace }} # DEBUGGING LINE: Lists files/directories in the workspace (can be removed later)
         export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH # Add src directory to Python path
         python src/main.py # Execute your main bot script
         
+    - name: Save sent_links.db to cache # <--- NEW: Separate step for saving cache
+      uses: actions/cache/save@v4 # Uses actions/cache/save
+      if: always() # Ensures this step runs even if previous steps failed
+      with:
+        path: sent_links.db # Path to the database file
+        key: ${{ steps.restore-cache-db.outputs.cache-primary-key || runner.os }}-sent-links-db-v1 # Use primary key from restore or fallback
+      continue-on-error: true # Allow workflow to proceed even if saving cache fails (less critical)
+
     - name: Upload sent_links.db as long-term backup # Uploads a backup artifact periodically
       uses: actions/upload-artifact@v4 # Uses actions/upload-artifact
       if: github.event_name == 'schedule' && github.event.schedule == '0 0 * * *' # Condition: only runs daily at midnight UTC
@@ -55,4 +66,4 @@ jobs:
         name: sent_links.db-backup # A distinct name for the backup artifact
         path: sent_links.db # Path to the database file (relative to GITHUB_WORKSPACE root)
         overwrite: true # Ensures the backup artifact is always the latest version
-        retention-days: 10000 # Keep the backup artifact for 10000 days
+        retention-days: 10000 # Keep the backup artifact for a very long time
