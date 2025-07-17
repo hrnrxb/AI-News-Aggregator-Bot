@@ -27,6 +27,23 @@ jobs:
       with:
         python-version: '3.11' # Specify a recent and stable Python version
 
+    # --- Cache Python dependencies (pip packages) ---
+    - name: Cache Python dependencies
+      uses: actions/cache@v4 # Uses actions/cache action
+      id: pip-cache # Assign an ID to this step for potential future reference (though not strictly needed here)
+      with:
+        path: ~/.cache/pip # Path where pip caches packages
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }} # Key based on OS and hash of requirements.txt
+        restore-keys: |
+          ${{ runner.os }}-pip- # Fallback key for partial matches
+          
+    # --- Cache Python dependencies ---
+    - name: Install dependencies
+      run: | # Executes commands in the shell
+        python -m pip install --upgrade pip # Upgrade pip to ensure latest version
+        pip install -r requirements.txt # Install project dependencies from requirements.txt
+        # If the cache was hit, this step will be very fast as packages are already present.
+
     - name: Install dependencies
       run: | # Executes commands in the shell
         python -m pip install --upgrade pip # Upgrade pip to ensure latest version
