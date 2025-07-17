@@ -94,6 +94,7 @@ def collect_all_news(sent_links): # sent_links is passed here to avoid fetching 
     all_news_items.extend(get_rss_feed_items("https://machinelearningmastery.com/blog/feed/", "machinelearningmastery Blog", sent_links, limit=10))
     all_news_items.extend(get_rss_feed_items("https://blogs.nvidia.com/blog/category/ai/feed/", "Nvidia AI Blog", sent_links, limit=10))
     all_news_items.extend(get_rss_feed_items("https://towardsdatascience.com/feed/", "Towards Data Science", sent_links, limit=10))
+    all_news_items.extend(get_rss_feed_items("http://theverge.com/rss/index.xml", "The Verge", sent_links, limit=20))
 
     # 2. Collect from GitHub Trending
     all_news_items.extend(get_github_trending_repos(language="python", sent_links=sent_links, limit=10))
@@ -111,7 +112,7 @@ def collect_all_news(sent_links): # sent_links is passed here to avoid fetching 
     all_news_items.extend(get_github_trending_repos(language="Awesome Lists", sent_links=sent_links, limit=10))
 
     # 3. Collect from Hacker News API
-    all_news_items.extend(get_hacker_news_items(sent_links=sent_links, limit=10))
+    all_news_items.extend(get_hacker_news_items(sent_links=sent_links, limit=20))
 
     # Remove duplicates from collected items that might come from different sources
     # (though sent_links filtering already handled most of this)
