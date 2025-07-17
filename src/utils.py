@@ -30,7 +30,9 @@ def get_source_emoji(source_name):
         "machinelearningmastery Blog": "👨‍🏫", # Practical ML tutorials
         "Nvidia AI Blog": "🚀",     # NVIDIA's AI hardware & software news
         "Towards Data Science": "📊",# Data Science articles and tutorials
-        "Hacker News": "🧑‍💻",        # No emoji, just "HN" prefix for classic feel
+        "Hacker News": "🧑‍💻",        # Hacker News latest news
+        "The Verge": "🟣",        # The Verge latest articles
+        
 
         # GitHub Trending (using specific language/topic emojis where applicable)
         "GitHub Trending (python)": "🐍",
