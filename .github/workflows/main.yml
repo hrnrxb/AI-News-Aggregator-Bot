@@ -3,7 +3,7 @@ name: AI News Aggregator Bot
 on:
   schedule:
     - cron: '0 */5 * * *' # Runs every 5 hours (e.g., 00:00, 05:00, 10:00, 15:00, 20:00 UTC)
-    - cron: '0 0 * * *'   # Runs daily at midnight UTC, specifically for the long-term backup
+    - cron: '0 0 * * *'    # Runs daily at midnight UTC, specifically for the long-term backup
   workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest # Uses the latest Ubuntu virtual machine
     permissions: # <--- IMPORTANT: Explicitly set permissions for GITHUB_TOKEN
       contents: write # Needed for actions/cache to save and actions/upload-artifact to upload
-      actions: read   # Good practice, might be needed by some internal actions (e.g., for gh CLI if used)
+      actions: read    # Good practice, might be needed by some internal actions (e.g., for gh CLI if used)
     concurrency: my-bot-single-run
 
     steps:
@@ -37,19 +37,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip- # Fallback key for partial matches
           
-    # --- Cache Python dependencies ---
-    - name: Install dependencies
+    - name: Install dependencies # --- Corrected: Only one instance of this step ---
       run: | # Executes commands in the shell
         python -m pip install --upgrade pip # Upgrade pip to ensure latest version
         pip install -r requirements.txt # Install project dependencies from requirements.txt
         # If the cache was hit, this step will be very fast as packages are already present.
-
-    - name: Install dependencies
-      run: | # Executes commands in the shell
-        python -m pip install --upgrade pip # Upgrade pip to ensure latest version
-        pip install -r requirements.txt # Install project dependencies from requirements.txt
         
-    - name: Restore sent_links.db from cache # <--- NEW: Separate step for restoring cache
+    - name: Restore sent_links.db from cache
       id: restore-cache-db # Assign an ID to this step to reference its outputs
       uses: actions/cache/restore@v4 # Uses actions/cache/restore
       with:
@@ -59,6 +53,18 @@ jobs:
           ${{ runner.os }}-sent-links-db-v1
       continue-on-error: true # Allow workflow to proceed even if cache is not found (e.g., on first run)
         
+    # --- Download sent_links.db long-term backup if cache was not hit ---
+    - name: Download sent_links.db long-term backup if cache was not hit
+      uses: actions/download-artifact@v4 # Action to download artifacts
+      # Only run if the cache was NOT hit AND sent_links.db file does not exist locally yet (after restore-cache-db)
+      # This prevents overwriting a successfully restored cache with an older artifact.
+      if: steps.restore-cache-db.outputs.cache-hit != 'true' && !cancelled() # !cancelled() ensures it runs if continue-on-error was used.
+      with:
+        name: sent_links.db-backup # Name of the artifact to download
+        path: . # Download to the root of the workspace (where sent_links.db is expected)
+      continue-on-error: true # Allow workflow to proceed even if backup is not found (e.g., first ever run, or artifact expired)
+    # --- Download sent_links.db long-term backup ---
+
     - name: Run Bot Script # This step always runs and modifies sent_links.db
       env: # Environment variables, securely loaded from GitHub Secrets
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -69,12 +75,13 @@ jobs:
         export PYTHONPATH=$GITHUB_WORKSPACE/src:$PYTHONPATH # Add src directory to Python path
         python src/main.py # Execute your main bot script
         
-    - name: Save sent_links.db to cache # <--- NEW: Separate step for saving cache
+    - name: Save sent_links.db to cache # <--- FIX: Corrected key logic here
       uses: actions/cache/save@v4 # Uses actions/cache/save
       if: always() # Ensures this step runs even if previous steps failed
       with:
         path: sent_links.db # Path to the database file
-        key: ${{ steps.restore-cache-db.outputs.cache-primary-key }} # Use primary key from restore or fallback
+        # Use primary key from restore (if cache was hit) or fall back to a fixed key if no cache was hit initially.
+        key: ${{ steps.restore-cache-db.outputs.cache-primary-key || format('{0}-sent-links-db-v1', runner.os) }}
       continue-on-error: true # Allow workflow to proceed even if saving cache fails (less critical)
 
     - name: Upload sent_links.db as long-term backup # Uploads a backup artifact periodically
