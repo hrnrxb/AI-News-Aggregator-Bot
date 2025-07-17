@@ -14,7 +14,7 @@ This project is more than just a simple bot; it's a powerful demonstration of **
     This bot gathers news and updates from a diverse array of leading and authoritative sources. Imagine having all key information, from the most reputable sources, in one place!
     * **Leading Research Blogs:** Hugging Face, OpenAI, DeepMind, Google AI, Microsoft AI, Meta AI, Amazon Science, Nvidia AI (the latest innovations directly from the source).
     * **Academic & Knowledge Platforms:** arXiv (for the newest NLP papers), Papers With Code (linked code and papers), The Gradient, Jay Alammar's blog (in-depth explanations), machinelearningmastery, Towards Data Science (practical insights), MIT News (general AI & tech news).
-    * **Community & Trends:** Reddit (Machine Learning subreddits for community discussions), Hacker News (general CS & tech discussions).
+    * **Community & Trends:** Reddit (Machine Learning subreddits for community discussions), Hacker News (general CS & tech discussions) and The Verge (General Tech News)
     * **GitHub Trending:** Identifies top trending repositories across relevant languages and topics (Python, Jupyter Notebook, Google Colab, AI, ML, DL, NLP, CV, Data Science, Awesome Lists) – always stay on top of hot projects!
 
 * **Automated & Timely Updates:**
