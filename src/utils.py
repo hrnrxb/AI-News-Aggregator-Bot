@@ -1,6 +1,7 @@
 import feedparser
 import requests
 from bs4 import BeautifulSoup
+import time
 
 # Assuming sent_links is passed as an argument or loaded from db.py
 # The actual sent_links set will be managed and passed from main.py
@@ -51,8 +52,17 @@ def get_source_emoji(source_name):
     }
     return emoji_map.get(source_name, "✨")
 
+# --- Define a common User-Agent header ---
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Connection': 'keep-alive',
+}
 
-def get_rss_feed_items(feed_url, source_name, sent_links, limit=10):
+
+def get_rss_feed_items(feed_url, source_name, sent_links, limit=15):
     """
     Retrieves new news items from an RSS feed, including title, link, and summary.
     No emoji prefix is added here, as it's handled by format_telegram_post.
@@ -78,6 +88,9 @@ def get_rss_feed_items(feed_url, source_name, sent_links, limit=10):
             summary = BeautifulSoup(summary, "html.parser").get_text(separator=' ', strip=True)
             summary = (summary[:200] + '...') if len(summary) > 200 else summary
 
+            # Add a small delay after processing each entry
+            time.sleep(0.3)
+            
             if link and link not in sent_links:
                 items.append((f"{source_name}: {title}", link, summary, source_name))
             else:
@@ -105,10 +118,18 @@ def get_hacker_news_items(sent_links, limit=10):
     items = []
     try:
         top_stories_url = "https://hacker-news.firebaseio.com/v0/topstories.json"
+
+        # --- Delay before first request to Hacker News ---
+        time.sleep(1)
+        
         top_story_ids = requests.get(top_stories_url).json()
 
         for story_id in top_story_ids[:limit]:
             item_url = f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json"
+
+            # --- Delay before each individual story request ---
+            time.sleep(0.5)
+            
             story_data = requests.get(item_url).json()
 
             title = story_data.get('title', "No Title")
@@ -148,6 +169,10 @@ def get_github_trending_repos(language, sent_links, limit=10):
     print(f"Retrieving news from GitHub Trending: {language} ({url})")
     items = []
     try:
+
+        # --- Delay before GitHub Trending request ---
+        time.sleep(1)
+        
         res = requests.get(url)
         res.raise_for_status()
         soup = BeautifulSoup(res.text, "html.parser")
