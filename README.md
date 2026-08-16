@@ -4,7 +4,7 @@ Tired of struggling to keep up with the latest advancements in the fast-paced wo
 This Python-powered Telegram bot is your ultimate solution!
 The **AI News Aggregator Bot** collects the newest and most critical news from the fields of **Artificial Intelligence (AI), Machine Learning (ML), Deep Learning (DL),** and **Natural Language Processing (NLP)** in real-time, delivering it directly to you.
 
-This project is more than just a simple bot; it's a powerful demonstration of **robust data collection, intelligent content curation, and automated deployment practices**. It's an invaluable asset for anyone who wants to stay updated in the constantly evolving AI landscape.
+This project is more than just a simple bot; it's a powerful demonstration of **robust data collection, intelligent content curation, and automated deployment practices**. It's an invaluable asset for anyone who wants to stay updated in the constantly evolving AI landscape.  
 
 ---
 
